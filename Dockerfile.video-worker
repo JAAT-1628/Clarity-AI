@@ -1,0 +1,31 @@
+FROM golang:1.24.5-alpine AS builder
+
+RUN apk add --no-cache \
+    ffmpeg \
+    yt-dlp \
+    bash
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN go build -o video-worker cmd/video-service/workers/main.go
+FROM python:3.9-slim
+
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    yt-dlp \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --no-cache-dir \
+    openai-whisper \
+    torch \
+    torchaudio
+
+RUN mkdir -p /tmp/video-processing /tmp/whisper-output
+COPY --from=builder /app/video-worker /root/video-worker
+WORKDIR /root/
+CMD ["./video-worker"]

@@ -1,0 +1,263 @@
+syntax = "proto3";
+
+package video;
+
+option go_package = "github.com/JAAT-1628/clarity-ai/api/proto/video;videoPb";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+service VideoAnalyzerService {
+    rpc StartVideoAnalysis(StartVideoAnalysisRequest) returns (StartVideoAnalysisResponse) {
+        option (google.api.http) = {
+          post: "/api/video/analyze"
+          body: "*"
+        };
+      }
+      
+      rpc GetAnalysisStatus(GetAnalysisStatusRequest) returns (GetAnalysisStatusResponse) {
+        option (google.api.http) = {
+          get: "/api/video/analysis/{analysis_id}/status"
+        };
+      }
+      
+      rpc StreamAnalysisResults(StreamAnalysisResultsRequest) returns (stream AnalysisChunkResult) {
+        option (google.api.http) = {
+          get: "/api/video/analysis/{analysis_id}/stream"
+        };
+      }
+      
+      rpc GetCompleteAnalysis(GetCompleteAnalysisRequest) returns (GetCompleteAnalysisResponse) {
+        option (google.api.http) = {
+          get: "/api/video/analysis/{analysis_id}"
+        };
+      }
+      
+      rpc GetAnalysisChunk(GetAnalysisChunkRequest) returns (GetAnalysisChunkResponse) {
+        option (google.api.http) = {
+          get: "/api/video/analysis/{analysis_id}/chunk/{chunk_id}"
+        };
+      }
+    }
+    
+    // Start video analysis request
+    message StartVideoAnalysisRequest {
+      int64 user_id = 1;
+      string video_url = 2;
+      string video_title = 3;
+      AIProvider ai_provider = 4;
+      ProcessingOptions options = 5;
+    }
+    
+    message ProcessingOptions {
+      int32 chunk_duration_minutes = 1;  // Default: 15 minutes
+      bool enable_real_time_streaming = 2;  // Default: true
+      repeated AnalysisType analysis_types = 3;
+      string language = 4; 
+    }
+    
+    message StartVideoAnalysisResponse {
+      string analysis_id = 1;
+      AnalysisStatus status = 2;
+      string message = 3;
+      int32 estimated_chunks = 4;
+      int32 estimated_duration_minutes = 5;
+      string stream_url = 6;
+    }
+    
+    // Streaming results
+    message StreamAnalysisResultsRequest {
+      string analysis_id = 1;
+    }
+    
+    message AnalysisChunkResult {
+      string analysis_id = 1;
+      int32 chunk_number = 2;
+      int32 total_chunks = 3;
+      ChunkStatus status = 4;
+      VideoChunk chunk_data = 5;
+      int32 progress_percentage = 6;
+      google.protobuf.Timestamp completed_at = 7;
+    }
+    
+    // Video chunk data
+    message VideoChunk {
+      string chunk_id = 1;
+      int32 chunk_number = 2;
+      string start_time = 3;
+      string end_time = 4;  
+      string transcript = 5;
+      string summary = 6;
+      repeated Topic topics = 7;
+      repeated Question questions = 8;
+      repeated KeyInsight key_insights = 9;
+    }
+    
+    message Topic {
+      string id = 1;
+      string title = 2;
+      string description = 3;
+      repeated string key_points = 4;
+      string timestamp_start = 5;
+      string timestamp_end = 6;
+      string why_important = 7;
+      repeated string related_concepts = 8;
+      TopicDifficulty difficulty = 9;
+    }
+    
+    message Question {
+      string id = 1;
+      string topic_id = 2;
+      string question = 3;
+      string answer = 4;
+      QuestionDifficulty difficulty = 5;
+      QuestionType type = 6;
+      string timestamp_reference = 7;
+    }
+    
+    message KeyInsight {
+      string id = 1;
+      string insight = 2;
+      string explanation = 3;
+      string timestamp = 4;
+      InsightType type = 5;
+    }
+    
+    // Complete analysis response
+    message GetCompleteAnalysisRequest {
+      string analysis_id = 1;
+    }
+    
+    message GetCompleteAnalysisResponse {
+      VideoAnalysis analysis = 1;
+    }
+    
+    message VideoAnalysis {
+      string id = 1;
+      int64 user_id = 2;
+      string video_url = 3;
+      string video_title = 4;
+      AnalysisStatus status = 5;
+      AIProvider ai_provider = 6;
+      int32 total_chunks = 7;
+      int32 completed_chunks = 8;
+      int32 total_duration_minutes = 9;
+      repeated VideoChunk chunks = 10;
+      AnalysisMetadata metadata = 11;
+      google.protobuf.Timestamp created_at = 12;
+      google.protobuf.Timestamp updated_at = 13;
+      google.protobuf.Timestamp completed_at = 14;
+    }
+    
+    message AnalysisMetadata {
+      int64 total_words = 1;
+      int64 total_topics = 2;
+      int64 total_questions = 3;
+      int64 total_insights = 4;
+      string dominant_language = 5;
+      repeated string detected_subjects = 6;
+      DifficultyDistribution difficulty_distribution = 7;
+    }
+    
+    message DifficultyDistribution {
+      int32 easy_topics = 1;
+      int32 medium_topics = 2;
+      int32 hard_topics = 3;
+    }
+    
+    // Status and chunk requests
+    message GetAnalysisStatusRequest {
+      string analysis_id = 1;
+    }
+    
+    message GetAnalysisStatusResponse {
+      string analysis_id = 1;
+      AnalysisStatus status = 2;
+      int32 total_chunks = 3;
+      int32 completed_chunks = 4;
+      int32 failed_chunks = 5;
+      int32 progress_percentage = 6;
+      string current_stage = 7;
+      string estimated_completion = 8;
+      repeated ChunkProgress chunk_progress = 9;
+    }
+    
+    message ChunkProgress {
+      int32 chunk_number = 1;
+      ChunkStatus status = 2;
+      string stage = 3;  // "extracting_audio", "transcribing", "analyzing", "completed"
+      int32 progress_percentage = 4;
+    }
+    
+    message GetAnalysisChunkRequest {
+      string analysis_id = 1;
+      string chunk_id = 2;
+    }
+    
+    message GetAnalysisChunkResponse {
+      VideoChunk chunk = 1;
+    }
+    
+    // Enums
+    enum AnalysisStatus {
+      ANALYSIS_STATUS_PENDING = 0;
+      ANALYSIS_STATUS_PROCESSING = 1;
+      ANALYSIS_STATUS_STREAMING = 2;  // Results available while processing continues
+      ANALYSIS_STATUS_COMPLETED = 3;
+      ANALYSIS_STATUS_FAILED = 4;
+      ANALYSIS_STATUS_CANCELLED = 5;
+    }
+    
+    enum ChunkStatus {
+      CHUNK_STATUS_PENDING = 0;
+      CHUNK_STATUS_EXTRACTING_AUDIO = 1;
+      CHUNK_STATUS_TRANSCRIBING = 2;
+      CHUNK_STATUS_ANALYZING = 3;
+      CHUNK_STATUS_COMPLETED = 4;
+      CHUNK_STATUS_FAILED = 5;
+    }
+    
+    enum AIProvider {
+      AI_PROVIDER_FREE = 0;        
+      AI_PROVIDER_OPENAI = 1;       
+      AI_PROVIDER_CLAUDE = 2;      
+      AI_PROVIDER_GEMINI = 3;       
+    }
+    
+    enum AnalysisType {
+      ANALYSIS_TYPE_TRANSCRIPT = 0;
+      ANALYSIS_TYPE_SUMMARY = 1;
+      ANALYSIS_TYPE_TOPICS = 2;
+      ANALYSIS_TYPE_QUESTIONS = 3;
+      ANALYSIS_TYPE_INSIGHTS = 4;
+      ANALYSIS_TYPE_ALL = 5;
+    }
+    
+    enum QuestionDifficulty {
+      QUESTION_DIFFICULTY_EASY = 0;
+      QUESTION_DIFFICULTY_MEDIUM = 1;
+      QUESTION_DIFFICULTY_HARD = 2;
+    }
+    
+    enum QuestionType {
+      QUESTION_TYPE_MULTIPLE_CHOICE = 0;
+      QUESTION_TYPE_TRUE_FALSE = 1;
+      QUESTION_TYPE_SHORT_ANSWER = 2;
+      QUESTION_TYPE_ESSAY = 3;
+      QUESTION_TYPE_CODING = 4;
+    }
+    
+    enum TopicDifficulty {
+      TOPIC_DIFFICULTY_BEGINNER = 0;
+      TOPIC_DIFFICULTY_INTERMEDIATE = 1;
+      TOPIC_DIFFICULTY_ADVANCED = 2;
+      TOPIC_DIFFICULTY_EXPERT = 3;
+    }
+    
+enum InsightType {
+      INSIGHT_TYPE_KEY_CONCEPT = 0;
+      INSIGHT_TYPE_IMPORTANT_FORMULA = 1;
+      INSIGHT_TYPE_PRACTICAL_TIP = 2;
+      INSIGHT_TYPE_COMMON_MISTAKE = 3;
+      INSIGHT_TYPE_BEST_PRACTICE = 4;
+}

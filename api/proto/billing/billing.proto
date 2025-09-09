@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package billing;
+
+option go_package = "github.com/JAAT-1628/clarity-ai/api/proto/billing;billingPb";
+
+import "google/api/annotations.proto";
+
+service BillingService {
+  rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse) {
+    option (google.api.http) = {
+      post: "/api/billing/checkout"
+      body: "*"
+    };
+  }
+  
+  rpc GetSubscription(GetSubscriptionRequest) returns (GetSubscriptionResponse) {
+    option (google.api.http) = {
+      get: "/api/billing/subscription"
+    };
+  }
+  
+  rpc CancelSubscription(CancelSubscriptionRequest) returns (CancelSubscriptionResponse) {
+    option (google.api.http) = {
+      post: "/api/billing/cancel"
+      body: "*"
+    };
+  }
+  
+  rpc HandleWebhook(HandleWebhookRequest) returns (HandleWebhookResponse) {
+    option (google.api.http) = {
+      post: "/api/billing/webhook"
+      body: "*"
+    };
+  }
+}
+
+message CreateCheckoutSessionRequest {
+  int64 user_id = 1;
+  string price_id = 2;
+  string success_url = 3;
+  string cancel_url = 4;
+}
+
+message CreateCheckoutSessionResponse {
+  string checkout_url = 1;
+  string session_id = 2;
+}
+
+message GetSubscriptionRequest {
+  int64 user_id = 1;
+}
+
+message GetSubscriptionResponse {
+  string status = 1;
+  string plan = 2;
+  int64 current_period_end = 3;
+}
+
+message CancelSubscriptionRequest {
+  int64 user_id = 1;
+  bool cancel_at_period_end = 2;
+}
+
+message CancelSubscriptionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message HandleWebhookRequest {
+  bytes raw_body = 1;
+  map<string, string> headers = 2;
+}
+
+message HandleWebhookResponse {
+  bool accepted = 1;
+}

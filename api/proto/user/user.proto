@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/JAAT-1628/clarity-ai/api/proto/user;userPb";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+service UserService {
+    rpc Register(RegisterRequest) returns (RegisterResponse) {
+      option (google.api.http) = {
+        post: "/api/auth/register"
+        body: "*"
+      };
+    }
+    rpc Login(LoginRequest) returns (LoginResponse) {
+      option (google.api.http) = {
+        post: "/api/auth/login"
+        body: "*"
+      };
+    }
+    rpc GetProfile(GetProfileRequest) returns (GetProfileResponse) {
+      option (google.api.http) = {
+        get: "/api/user/profile"
+      };
+    }
+    rpc UpdatePlan(UpdatePlanRequest) returns (UpdatePlanResponse) {}
+    rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
+      option (google.api.http) = {
+        post: "/api/validate-token"
+        body: "*"
+      };
+    }
+  }
+
+message RegisterRequest {
+    string username = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message RegisterResponse {
+    User user = 1;
+    string token = 2;
+}
+
+message LoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    User user = 1;
+    string token = 2;
+}
+
+message GetProfileRequest {
+    int64 id = 1;
+}
+
+message GetProfileResponse {
+    User user = 1;
+}
+
+message UpdatePlanRequest {
+    int64 user_id = 1;
+    UserPlan plan = 2;
+}
+
+message UpdatePlanResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message ValidateTokenRequest {
+    string token = 1;
+  }
+  
+message ValidateTokenResponse {
+    bool valid = 1;
+    TokenClaims claims = 2;
+}
+
+message User {
+    int64 id =1;
+    string username = 2;
+    string email = 3;
+    UserPlan plan = 4;
+    int64 api_usage_count = 5;
+    google.protobuf.Timestamp api_usage_reset_date = 6;
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+}
+
+message TokenClaims {
+    int64 user_id = 1;
+    UserPlan plan = 2;
+    string email = 3;
+}
+
+enum UserPlan {
+    free = 0;
+    premium = 1;
+    pro = 2;
+}
